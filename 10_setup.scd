@@ -39,13 +39,21 @@ s.waitForBoot {
     ~micBus = Bus.audio(s, 1);
     ~kpos = Bus.audio(s, 1); // Bus audio per puntatore sincrono
 
+	// Dizionario per i bus di controllo del FREQUENCY SHIFTER
+    ~fBuses = Dictionary.new;
+    [\fshift, \mix, \amp].do({ |key| ~fBuses[key] = Bus.control(s, 1); });
+
+	// Dizionario per i bus di controllo della RING MODULATION
+    ~rBuses = Dictionary.new;
+    [\fmod, \idx, \amp].do({ |key| ~rBuses[key] = Bus.control(s, 1); });
+
+	// Dizionario per i bus di controllo dell'HARMONIZER (Sincrono)
+	~hBuses = Dictionary.new;
+	[\pos, \trig, \gdur, \trsp, \amp].do({ |key| ~hBuses[key] = Bus.control(s, 1); });
+
     // Dizionario per i bus di controllo del GRANULATOR
     ~gBuses = Dictionary.new;
     [\pos, \trig, \gdur, \trsp, \amp].do({ |key| ~gBuses[key] = Bus.control(s, 1); });
-
-    // Dizionario per i bus di controllo della RING MODULATION
-    ~rBuses = Dictionary.new;
-    [\fmod, \idx, \amp].do({ |key| ~rBuses[key] = Bus.control(s, 1); });
 
 	// Dizionario per i bus di controllo dello SLICING
     ~sBuses = Dictionary.new;

@@ -9,26 +9,29 @@
 ~recMix = 0;
 ~sampleFx = nil;
 
-~gCtrls    = ~gCtrls ? Dictionary.new;
+~fCtrls = Dictionary.new;
+~rCtrls = Dictionary.new;
+~hCtrls = Dictionary.new;
+~gCtrls = Dictionary.new;
+~sCtrls = Dictionary.new;
+~dCtrls = Dictionary.new;
 
 ~fshiftFx  = nil;
-~grainFx   = nil;
-
-~rCtrls = Dictionary.new;
-~ringFx = nil;
-
-~harmFx = nil;
+~ringFx    = nil;
+~harmFx    = nil;
 ~harmPointer = nil;
-~harmRec = nil;
-
-~sCtrls = Dictionary.new;
+~harmRec   = nil;
+~grainFx   = nil;
 ~sliceRoutine = nil;
-
-~dCtrls = Dictionary.new;
-~delayFx = nil;
+~delayFx   = nil;
 
 /////////////////////// INIT PIECE
 ~pieceInit = {
+	//[~fCtrls, ~gCtrls, ~rCtrls, ~sCtrls, ~dCtrls].do({ |dict|
+    //    dict.do(_.free);
+    //    dict.clear;
+    //});
+
     if(~source.notNil) { ~source.free; };
     ~source = Synth(\mic, [\busIn, 0, \busOut, ~micBus, \amp, 1], ~micGrp);
 
@@ -38,35 +41,49 @@
         ~lastSlice = ~slicePool.last;
     };
 
-    // --- INIZIALIZZAZIONE BUS GRANULATORE / HARMONIZER (~gBuses) ---
-    ~grainCtrl.(\amp,  type: -1, val: 0.5);
-    ~grainCtrl.(\gdur, type: -1, val: 0.15);
-    ~grainCtrl.(\pos,  type: -1, val: 0.5);
-    ~grainCtrl.(\trsp, type: -1, val: 0);
-    ~grainCtrl.(\trig, type: 4,  freq: 15);
+	// --- INIZIALIZZAZIONE BUS FREQUENCY SHIFTER (~fBuses) ---
+	~fBuses[\fshift].set(30);
+	~fBuses[\mix].set(0.3);
+	~fBuses[\amp].set(0);
 
-    // --- INIZIALIZZAZIONE BUS RING MODULATION (~rBuses) ---
-    ~ringCtrl.(\fmod, type: -1, val: 440);
-    ~ringCtrl.(\idx,  type: -1, val: 0.5);
-    ~ringCtrl.(\amp,  type: -1, val: 0.0);
+	// --- INIZIALIZZAZIONE BUS RING MODULATION (~rBuses) ---
+	~rBuses[\fmod].set(440);
+	~rBuses[\idx].set(0.5);
+	~rBuses[\amp].set(0.5);
 
-    // --- INIZIALIZZAZIONE BUS SLICING (~sBuses) ---
-    ~sliceCtrl.(\pos,  type: -1, val: 0.1);
-    ~sliceCtrl.(\dur,  type: -1, val: 0.4);
-    ~sliceCtrl.(\wait, type: -1, val: 0.2);
-    ~sliceCtrl.(\amp,  type: -1, val: 0.0);
-    ~sliceCtrl.(\trsp, type: -1, val: 0);
-    ~sliceCtrl.(\dir,  type: -1, val: 1);
+	// --- INIZIALIZZAZIONE BUS HARMONIZER (~hBuses) ---
+    ~hBuses[\amp].set(0.5);
+    ~hBuses[\trig].set(0); // --- PROMEMORIA: Attiva i trigger live per generare il suono ---
+    ~hBuses[\trsp].set(0);
+    ~hBuses[\gdur].set(0.15);
+
+	// --- INIZIALIZZAZIONE BUS RING MODULATION (~rBuses) ---
+	~gBuses[\amp].set(0.5);
+	~gBuses[\gdur].set(0.15);
+	~gBuses[\pos].set(0.1);
+    ~gBuses[\trsp].set(0);
+	~gBuses[\trig].set(0); // --- PROMEMORIA: Attiva i trigger live per generare il suono (Impulse) ---
+
+	// --- INIZIALIZZAZIONE BUS SLICING (~sBuses) ---
+    ~sBuses[\pos].set(0.1);
+	~sBuses[\dur].set(0.4);
+	~sBuses[\wait].set(0.2);
+    ~sBuses[\amp].set(0.5);
+	~sBuses[\trsp].set(0);
+	~sBuses[\dir].set(1);
 
 	// --- INIZIALIZZAZIONE BUS DELAY (~dBuses) ---
-    ~delayCtrl.(\del,    type: -1, val: 0.3);
-    ~delayCtrl.(\mix,    type: -1, val: 0.0);
-    ~delayCtrl.(\decayT, type: -1, val: 2.0);
-    ~delayCtrl.(\fbk,    type: -1, val: 0.5);
-    ~delayCtrl.(\rate,   type: -1, val: 1.0);
-    ~delayCtrl.(\amp,    type: -1, val: 0.5);
+    ~dBuses[\del].set(0.3);
+	~dBuses[\mix].set(0.0);
+	~dBuses[\decayT].set(2.0);
+    ~dBuses[\fbk].set(0.5);
+	~dBuses[\rate].set(1.0);
+	~dBuses[\amp].set(0.5);
 
 	~recMix = 0;
+
+	~syncMixer.(0.5);
+    ~asyncMixer.(0.5);
 
     "PIECE MODE READY: Tutti i bus di controllo inizializzati.".postln;
 };
@@ -75,30 +92,37 @@
 
 /////////////////////// SYNC FX: FSHIFT
 
-~fshiftOn = { |fshift=30, mix=0.3, amp=0.9, pan=0|
+~fshiftCtrl = { |param, type= -1, val=0.5, range= #[0, 1], freq=1|
+    var bus = ~fBuses[param];
+    if(~fCtrls[param].notNil) { ~fCtrls[param].free; ~fCtrls[param] = nil; };
+
+    if(type == -1) {
+        bus.set(val);
+        (param ++ " -> STATIC: " ++ val).postln;
+    } {
+        ~fCtrls[param] = Synth(\ksig, [
+            \type, type, \range, range, \freq, freq, \busOut, bus
+        ], ~recGrp);
+        (param ++ " -> MODULATED (Type " ++ type ++ ")").postln;
+    };
+};
+
+~fshiftOn = {
     if(~fshiftFx.notNil) { ~fshiftFx.set(\gate, 0); };
 
     ~fshiftFx = Synth(\fshift, [
         \busIn, ~micBus,
         \busOut, 0,
-        \fshift, fshift,
-        \mix, mix,
-        \amp, amp,
-        \pan, pan,
+        \fshift, ~fBuses[\fshift].asMap,
+        \mix,    ~fBuses[\mix].asMap,
+        \amp,    ~fBuses[\amp].asMap,
         \gate, 1
     ], ~fxGrp);
 
-    "FSHIFT ON".postln;
+    "FSHIFT ON (Consistent with Ring/Grain)".postln;
 };
 
-~fshiftOff = {
-    if(~fshiftFx.notNil) {
-        ~fshiftFx.set(\gate, 0);
-        ~fshiftFx = nil;
-        "FSHIFT OFF".postln;
-    };
-};
-
+~fshiftOff = { if(~fshiftFx.notNil) { ~fshiftFx.set(\gate, 0); ~fshiftFx = nil; "FSHIFT OFF".postln; } };
 
 /////////////////////// SYNC FX: RING MODULATION
 
@@ -120,9 +144,9 @@
 ~ringOn = {
     if(~ringFx.notNil) { ~ringFx.set(\gate, 0); };
 
-    if(~rCtrls[\fmod].isNil) { ~ringCtrl.(\fmod, type: -1, val: 440); };
-    if(~rCtrls[\idx].isNil)  { ~ringCtrl.(\idx,  type: -1, val: 0.5); };
-    if(~rCtrls[\amp].isNil)  { ~ringCtrl.(\amp,  type: -1, val: 0.5); };
+    //if(~rCtrls[\fmod].isNil) { ~ringCtrl.(\fmod, type: -1, val: 440); };
+    //if(~rCtrls[\idx].isNil)  { ~ringCtrl.(\idx,  type: -1, val: 0.5); };
+    //if(~rCtrls[\amp].isNil)  { ~ringCtrl.(\amp,  type: -1, val: 0.5); };
 
     ~ringFx = Synth(\ring, [
         \busIn, ~micBus,
@@ -140,24 +164,30 @@
 
 /////////////////////// SYNC FX: HARMONIZER (GRANULAR)
 
+~harmCtrl = { |param, type= -1, val=0.5, range= #[0, 1], freq=1|
+    var bus = ~hBuses[param];
+    if(~hCtrls[param].notNil) { ~hCtrls[param].free; ~hCtrls[param] = nil; };
+    if(type == -1) {
+        bus.set(val);
+    } {
+        ~hCtrls[param] = Synth(\ksig, [\type, type, \range, range, \freq, freq, \busOut, bus], ~recGrp);
+    };
+};
+
 ~harmOn = {
     if(~harmFx.notNil) { ~harmOff.value; };
-
     ~harmPointer = Synth(\pos, [\buf, ~blive, \busOut, ~kpos], ~micGrp);
-
     ~harmRec = Synth(\syncrec, [\busIn, ~micBus, \busPos, ~kpos, \buf, ~blive], ~recGrp);
-
     ~harmFx = Synth(\gharm, [
         \buf, ~blive,
         \busOut, 0,
-        \busPos, ~kpos, // Audio bus
-        \trig, ~gBuses[\trig].asMap,
-        \trsp, ~gBuses[\trsp].asMap,
-        \gdur, ~gBuses[\gdur].asMap,
-        \amp,  ~gBuses[\amp].asMap,
+        \busPos, ~kpos,
+        \trig, ~hBuses[\trig].asMap, // Usa ~hBuses
+        \trsp, ~hBuses[\trsp].asMap, // Usa ~hBuses
+        \gdur, ~hBuses[\gdur].asMap, // Usa ~hBuses
+        \amp,  ~hBuses[\amp].asMap,  // Usa ~hBuses
         \gate, 1
     ], ~fxGrp);
-
     "HARMONIZER (SYNC) ON".postln;
 };
 
@@ -298,11 +328,11 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
 
     if(~grainFx.notNil)  { ~grainFx.set(\gate, 0); };
 
-    if(~gCtrls[\trig].isNil) { ~grainCtrl.(\trig, type: 4, freq: 20); };
+    //if(~gCtrls[\trig].isNil) { ~grainCtrl.(\trig, type: 4, freq: 20); };
 
-    if(~gCtrls[\amp].isNil)  { ~grainCtrl.(\amp,  type: -1, val: 0.7); };
+    //if(~gCtrls[\amp].isNil)  { ~grainCtrl.(\amp,  type: -1, val: 0.7); };
 
-    if(~gCtrls[\gdur].isNil) { ~grainCtrl.(\gdur, type: -1, val: 0.1); };
+    //if(~gCtrls[\gdur].isNil) { ~grainCtrl.(\gdur, type: -1, val: 0.1); };
 
     ~grainFx = Synth(\grain_1, [
         \buf, ~lastSlice.bufnum,
@@ -347,12 +377,12 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
     if(~lastSlice.isNil) { "Nessuna slice registrata.".warn; ^nil };
     if(~sliceRoutine.notNil) { ~sliceRoutine.stop; };
 
-    if(~sCtrls[\pos].isNil)  { ~sliceCtrl.(\pos,  type: -1, val: 0.1); };
-    if(~sCtrls[\dur].isNil)  { ~sliceCtrl.(\dur,  type: -1, val: 0.4); };
-    if(~sCtrls[\wait].isNil) { ~sliceCtrl.(\wait, type: -1, val: 0.2); };
-    if(~sCtrls[\amp].isNil)  { ~sliceCtrl.(\amp,  type: -1, val: 0.6); };
-    if(~sCtrls[\trsp].isNil) { ~sliceCtrl.(\trsp, type: -1, val: 0); };
-    if(~sCtrls[\dir].isNil)  { ~sliceCtrl.(\dir,  type: -1, val: 1); };
+    //if(~sCtrls[\pos].isNil)  { ~sliceCtrl.(\pos,  type: -1, val: 0.1); };
+    //if(~sCtrls[\dur].isNil)  { ~sliceCtrl.(\dur,  type: -1, val: 0.4); };
+    //if(~sCtrls[\wait].isNil) { ~sliceCtrl.(\wait, type: -1, val: 0.2); };
+    //if(~sCtrls[\amp].isNil)  { ~sliceCtrl.(\amp,  type: -1, val: 0.6); };
+    //if(~sCtrls[\trsp].isNil) { ~sliceCtrl.(\trsp, type: -1, val: 0); };
+    //if(~sCtrls[\dir].isNil)  { ~sliceCtrl.(\dir,  type: -1, val: 1); };
 
     ~sliceRoutine = Routine({
         inf.do({
@@ -437,47 +467,39 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
 
 /////////////////////// LIVE VOLUME CONTROLS (Specifici)
 
-~ringSetAmp = { |amp=0.5| ~ringCtrl.(\amp, type: -1, val: amp.clip(0, 2)) };
-
-~harmSetAmp = { |amp=0.5| ~grainCtrl.(\amp, type: -1, val: amp.clip(0, 2)) };
-
-~fshiftSetAmp = { |amp=0.5| if(~fshiftFx.notNil) { ~fshiftFx.set(\amp, amp.clip(0, 2)) } };
-
-~grainSetAmp = { |amp=0.5| ~grainCtrl.(\amp, type: -1, val: amp.clip(0, 2)) };
-
-~sliceSetAmp = { |amp=0.5| ~sliceCtrl.(\amp, type: -1, val: amp.clip(0, 2)) };
-
-~delaySetAmp = { |amp=0.5| ~delayCtrl.(\amp, type: -1, val: amp.clip(0, 2)) };
+~fshiftSetAmp = { |amp=0.5| ~fshiftCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~ringSetAmp   = { |amp=0.5| ~ringCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~harmSetAmp = { |amp=0.5| ~harmCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~grainSetAmp  = { |amp=0.5| ~grainCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~sliceSetAmp  = { |amp=0.5| ~sliceCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~delaySetAmp  = { |amp=0.5| ~delayCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
 
 
 /////////////////////// MASTER MIXER (Macro)
 
 ~syncMixer = { |amp=0.5|
-    var volume = amp.clip(0, 2);
-    ~fshiftSetAmp.(volume);
-    ~ringSetAmp.(volume);
-    ~harmSetAmp.(volume);
-    ~delaySetAmp.(volume);
-    ("Sync Layer Volume -> " + volume).postln;
+    ~fshiftSetAmp.(amp); ~ringSetAmp.(amp); ~harmSetAmp.(amp); ~delaySetAmp.(amp);
+    ("Sync Layer -> " + amp).postln;
 };
 
 ~asyncMixer = { |amp=0.5|
-    var volume = amp.clip(0, 2);
-    ~grainSetAmp.(volume);
-	~sliceSetAmp.(volume);
-	~delaySetAmp.(volume);
-    ("Async Layer Volume -> " + volume).postln;
+    ~grainSetAmp.(amp); ~sliceSetAmp.(amp);
+    ("Async Layer -> " + amp).postln;
 };
-
-
 //////// RECALL
 
 ~useSlice = { |index|
-	if(~slicePool[index].notNil) {
-		~lastSlice = ~slicePool[index];
-		if(~grainFx.notNil) { ~grainFx.set(\buf, ~lastSlice.bufnum) };
-		("Ora il granulatore legge: ~slicePool[" ++ index ++ "]").postln;
-	} { "Indice non trovato nella pool!".warn };
+    if(~slicePool[index].notNil) {
+        ~lastSlice = ~slicePool[index];
+        if(~grainFx.notNil) { ~grainFx.set(\buf, ~lastSlice.bufnum) };
+
+        if(~sliceRoutine.notNil) {
+            ~sliceOff.();
+            ~sliceOn.();
+        };
+
+        ("Now reading: ~slicePool[" ++ index ++ "]").postln;
+    } { "Index not found!".warn };
 };
 
 
@@ -487,6 +509,18 @@ if(~pieceWin.notNil) { ~pieceWin.close; };
 ~pieceWin = Window("PIECE MODE", Rect(200, 200, 560, 70)).front.alwaysOnTop_(true);
 ~pieceWin.view.keyDownAction_({ arg ... args;
     switch(args[1],
+
+		// SHIFTER
+        $f, { ~fshiftOn.() },
+        $v, { ~fshiftOff.() },
+
+		// RING MODULATION
+        $a, { ~ringOn.() },
+        $z, { ~ringOff.() },
+
+        // HARMONIZER
+        $h, { ~harmOn.() },
+        $n, { ~harmOff.() },
 
 		$r, { ~recordTimed.(5) },  // Registrazione fissa
 		$i, { ~recStart.() },        // Registrazione manuale START
@@ -507,10 +541,6 @@ if(~pieceWin.notNil) { ~pieceWin.close; };
 		$$, { ~sampleOn.(4) },
 		$%, { ~sampleOn.(5) },
 
-		// GRANULAR ASINCRONO
-        $g, { ~grainOn.() },
-        $b, { ~grainOff.() },
-
 		$0, { ~useSlice.(0) },       // Richiama il primo buffer registrato
 		$1, { ~useSlice.(1) },       // Richiama il secondo...
 		$2, { ~useSlice.(2) },
@@ -519,23 +549,15 @@ if(~pieceWin.notNil) { ~pieceWin.close; };
 		$5, { ~useSlice.(5) },
 		$6, { ~useSlice.(6) },
 
-		// SHIFTER SINCRONO
-        $f, { ~fshiftOn.() },
-        $v, { ~fshiftOff.() },
+		// GRANULATOR
+        $g, { ~grainOn.() },
+        $b, { ~grainOff.() },
 
-		// RING MODULATION SINCRONO
-        $a, { ~ringOn.() },
-        $z, { ~ringOff.() },
-
-        // HARMONIZER SINCRONO
-        $h, { ~harmOn.() },
-        $n, { ~harmOff.() },
-
-		// SLICER ASINCRONO
+		// SLICER
 		$s, { ~sliceOn.() },
 		$x, { ~sliceOff.() },
 
-		// DELAY SICRONI
+		// DELAY
 		$e, { ~delayOn.(\echo) },     // Echo semplice
 		$d, { ~delayOn.(\fbk) },      // Feedback Delay
 		$p, { ~delayOn.(\pingpong) }, // Ping Pong
