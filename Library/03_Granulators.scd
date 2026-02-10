@@ -7,7 +7,7 @@ SynthDef(\grain_1, { arg busOut = 0, buf = 0, pos = 0, trig = 0,
     // Converte la posizione in secondi in base alla durata del buffer
     pos = pos * BufDur.kr(buf);
 
-    sig = TGrains.ar(2, // Uscita Stereo
+	sig = TGrains.ar(1, // Uscita Mono (2 per Stereo)
         trig,
         buf,
         trsp.midiratio,
@@ -41,7 +41,7 @@ SynthDef(\gharm, { arg busOut = 0, busPos = 0, buf = 0, trig = 0,
     var pos, sig, env;
     // Legge la posizione e la converte in secondi per TGrains
     pos = In.ar(busPos, 1) / SampleRate.ir(buf);
-    sig = TGrains.ar(2, trig, buf, trsp.midiratio, pos, gdur, pan, amp, 4);
+    sig = TGrains.ar(1, trig, buf, trsp.midiratio, pos, gdur, pan, amp, 4); //2 per Stereo
     env = Linen.kr(gate, doneAction: done);
     Out.ar(busOut, sig * env);
 }).add;
@@ -58,7 +58,8 @@ SynthDef(\harm, { arg busIn = 0, busOut = 0, trsp = 0,
         trand              // Randomizzazione tempo
     );
     env = Linen.kr(gate, doneAction: done);
-    Out.ar(busOut, Pan2.ar(sig * env * amp, pan));
+    //Out.ar(busOut, Pan2.ar(sig * env * amp, pan));
+	Out.ar(busOut, sig * env * amp, pan);
 }).add;
 
 "Libreria Granulators SynthDef caricata.".postln;

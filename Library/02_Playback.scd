@@ -14,7 +14,7 @@ SynthDef(\plbk, {arg buf = 0, busOut = 0, pos = 0, dur = 0.2, amp = 0,
     env = Env.linen(0.01, dur - 0.02, 0.01);
     env = EnvGen.kr(env, t_gate, doneAction: done);
     sig = sig * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -24,7 +24,7 @@ SynthDef(\sch, { arg buf = 0, busOut = 0, smooth = 0.02, amp = 0, pos = 0, pan =
     // Mappa il valore 0-1 del mouse alla durata dei frames del buffer
     pnt = Lag.kr(pos.linlin(0, 1, 0, BufFrames.kr(buf)), smooth);
     sig = BufRd.ar(1, buf, K2A.ar(pnt)); // K2A converte il controllo in audio rate
-    sig = Pan2.ar(sig * amp, pan);
+    //sig = Pan2.ar(sig * amp, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -51,7 +51,7 @@ SynthDef(\loop, {arg buf = 0, busTrig = 99, busDur = 100, busOut = 0,
     env = EnvGen.ar(env, trig);
     fade = Linen.kr(gate, doneAction: done);
     sig = sig * fade * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 

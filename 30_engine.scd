@@ -325,14 +325,7 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
 
 ~grainOn = {
     if(~lastSlice.isNil) { "Nessuna slice registrata.".warn; ^nil };
-
     if(~grainFx.notNil)  { ~grainFx.set(\gate, 0); };
-
-    //if(~gCtrls[\trig].isNil) { ~grainCtrl.(\trig, type: 4, freq: 20); };
-
-    //if(~gCtrls[\amp].isNil)  { ~grainCtrl.(\amp,  type: -1, val: 0.7); };
-
-    //if(~gCtrls[\gdur].isNil) { ~grainCtrl.(\gdur, type: -1, val: 0.1); };
 
     ~grainFx = Synth(\grain_1, [
         \buf, ~lastSlice.bufnum,
@@ -377,13 +370,6 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
     if(~lastSlice.isNil) { "Nessuna slice registrata.".warn; ^nil };
     if(~sliceRoutine.notNil) { ~sliceRoutine.stop; };
 
-    //if(~sCtrls[\pos].isNil)  { ~sliceCtrl.(\pos,  type: -1, val: 0.1); };
-    //if(~sCtrls[\dur].isNil)  { ~sliceCtrl.(\dur,  type: -1, val: 0.4); };
-    //if(~sCtrls[\wait].isNil) { ~sliceCtrl.(\wait, type: -1, val: 0.2); };
-    //if(~sCtrls[\amp].isNil)  { ~sliceCtrl.(\amp,  type: -1, val: 0.6); };
-    //if(~sCtrls[\trsp].isNil) { ~sliceCtrl.(\trsp, type: -1, val: 0); };
-    //if(~sCtrls[\dir].isNil)  { ~sliceCtrl.(\dir,  type: -1, val: 1); };
-
     ~sliceRoutine = Routine({
         inf.do({
             Synth(\plbk, [
@@ -394,7 +380,7 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
                 \amp, ~sBuses[\amp].getSynchronous,
                 \trsp, ~sBuses[\trsp].getSynchronous,
                 \dir, if(~sBuses[\dir].getSynchronous > 0, 1, -1),
-                \pan, rrand(-0.8, 0.8),
+                //\pan, rrand(-0.8, 0.8),
                 \t_gate, 1
             ], ~fxGrp);
 

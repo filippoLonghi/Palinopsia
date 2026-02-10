@@ -15,7 +15,7 @@ SynthDef(\echo, {arg busIn = 0, busOut = 0, maxdel = 10, del = 0.5, mix = 0,
     sig = XFade2.ar(dly, sig, mix);
 
     sig = sig * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -36,7 +36,7 @@ SynthDef(\del_1, {arg busIn = 0, busOut = 0, maxdel = 10, del = 0.5, fbk = 0.0, 
 
     env = Linen.kr(gate, doneAction: done);
     sig = XFade2.ar(dly, sig, mix) * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -52,7 +52,7 @@ SynthDef(\del_2, {arg busIn = 0, busOut = 0, maxdel = 10, del = 0.5, decayT = 1,
     sig = LeakDC.ar(dly);
     sig = XFade2.ar(dly, in, mix);
     sig = sig * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -87,7 +87,7 @@ SynthDef(\multitap, {arg busIn = 0, busOut = 0, buf = 0,
 
     sig = XFade2.ar(del, in, mix);
     sig = sig * amp * env;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -106,7 +106,7 @@ SynthDef(\vardel, {arg busIn = 0, busOut = 0,
     env = Linen.kr(gate, doneAction: done);
     sig = LeakDC.ar(dly); // Fondamentale per feedback lunghi e instabili
     sig = XFade2.ar(dly, in, mix) * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -131,7 +131,7 @@ SynthDef(\delfilt, {arg busIn = 0, busOut = 0,
     env = Linen.kr(gate, doneAction: done);
     sig = XFade2.ar(dly, sig, mix);
     sig = sig * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -148,7 +148,7 @@ SynthDef(\resondel, {arg busIn = 0, busOut = 0, decayT = 0.2, reson = 0.01,
     dly = CombL.ar(in, 0.01, reson, decayT);
     env = Linen.kr(gate, doneAction: done);
     sig = dly * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 

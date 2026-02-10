@@ -7,7 +7,7 @@ SynthDef(\ring, {arg busIn = 0, busOut = 0, fmod = 400, idx = 0, amp = 0, gate =
     env = Linen.kr(gate, doneAction: 2);
     // Moltiplicazione bipolare: genera frequenze somma e differenza
     sig = car * mod * amp * env;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -25,7 +25,7 @@ SynthDef(\ring1, {arg busIn = 0, busOut = 0, amp = 0, gate = 0, pan = 0;
 
     env = Linen.kr(gate, doneAction: 2);
     sig = car * mod * amp * env;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
@@ -38,7 +38,7 @@ SynthDef(\fshift, {arg busIn = 0, busOut = 0, fshift = 0, amp = 0, pan = 0, mix 
     sig = XFade2.ar(sIn, sig, mix.linlin(0, 1, -1, 1));
     env = Linen.kr(gate, doneAction: 2);
     sig = sig * env * amp;
-    sig = Pan2.ar(sig, pan);
+    //sig = Pan2.ar(sig, pan);
     Out.ar(busOut, sig)
 }).add;
 
