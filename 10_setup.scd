@@ -18,9 +18,7 @@ s.options.hardwareBufferSize = 256;
 s.options.memSize = 2.pow(18); // 524288 KB = 512 MB
 
 TempoClock.default.tempo = 1;
-)
 
-(
 s.waitForBoot {
 
     // --- RESET TOTALE ---
