@@ -25,6 +25,17 @@
 ~sliceRoutine = nil;
 ~delayFx   = nil;
 
+~ampBase = Dictionary.newFrom([
+	\fshift, 0.5, \ring, 0.5, \harm, 0.5, \delay, 0.5, \grain, 0.5, \slice, 0.5
+]);
+
+~syncMult = 1.0;
+~asyncMult = 1.0;
+~masterMult = 1.0;
+
+~syncList  = [\fshift, \ring, \harm, \delay];
+~asyncList = [\grain, \slice];
+
 /////////////////////// INIT PIECE
 ~pieceInit = {
 	//[~fCtrls, ~gCtrls, ~rCtrls, ~sCtrls, ~dCtrls].do({ |dict|
@@ -82,8 +93,9 @@
 
 	~recMix = 0;
 
-	~syncMixer.(0.5);
-    ~asyncMixer.(0.5);
+	~syncMixer.(1.0);
+    ~asyncMixer.(1.0);
+    ~masterMixer.(1.0);
 
     "PIECE MODE READY: Tutti i bus di controllo inizializzati.".postln;
 };
@@ -451,27 +463,53 @@ SynthDef(\dryPlayer, { arg buf=0, amp=1, gate=1, loop=0, out=0;
 ~delayOff = { if(~delayFx.notNil) { ~delayFx.set(\gate, 0); ~delayFx = nil; "DELAY OFF".postln; } };
 
 
-/////////////////////// LIVE VOLUME CONTROLS (Specifici)
+/////////////////////// LIVE VOLUME CONTROLS
 
-~fshiftSetAmp = { |amp=0.5| ~fshiftCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
-~ringSetAmp   = { |amp=0.5| ~ringCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
-~harmSetAmp = { |amp=0.5| ~harmCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
-~grainSetAmp  = { |amp=0.5| ~grainCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
-~sliceSetAmp  = { |amp=0.5| ~sliceCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
-~delaySetAmp  = { |amp=0.5| ~delayCtrl.(\amp, type: -1, val: amp.clip(0, 10)) };
+~refreshAmp = { |key|
+	var base = ~ampBase[key] ? 0.5;
+	var layerMult = if(~syncList.includes(key), {~syncMult}, {~asyncMult});
 
+	var finalVal = (base * layerMult * ~masterMult).clip(0, 10);
 
-/////////////////////// MASTER MIXER (Macro)
-
-~syncMixer = { |amp=0.5|
-    ~fshiftSetAmp.(amp); ~ringSetAmp.(amp); ~harmSetAmp.(amp); ~delaySetAmp.(amp);
-    ("Sync Layer -> " + amp).postln;
+	switch(key,
+		\fshift, { ~fshiftCtrl.(\amp, type: -1, val: finalVal) },
+		\ring,   { ~ringCtrl.(\amp,   type: -1, val: finalVal) },
+		\harm,   { ~harmCtrl.(\amp,   type: -1, val: finalVal) },
+		\delay,  { ~delayCtrl.(\amp,  type: -1, val: finalVal) },
+		\grain,  { ~grainCtrl.(\amp,  type: -1, val: finalVal) },
+		\slice,  { ~sliceCtrl.(\amp,  type: -1, val: finalVal) }
+	);
 };
 
-~asyncMixer = { |amp=0.5|
-    ~grainSetAmp.(amp); ~sliceSetAmp.(amp);
-    ("Async Layer -> " + amp).postln;
+/////////////////////// LIVE VOLUME CONTROLS (Base Values)
+
+~fshiftSetAmp = { |amp=0.5| ~ampBase[\fshift] = amp; ~refreshAmp.(\fshift); };
+~ringSetAmp   = { |amp=0.5| ~ampBase[\ring]   = amp; ~refreshAmp.(\ring);   };
+~harmSetAmp   = { |amp=0.5| ~ampBase[\harm]   = amp; ~refreshAmp.(\harm);   };
+~grainSetAmp  = { |amp=0.5| ~ampBase[\grain]  = amp; ~refreshAmp.(\grain);  };
+~sliceSetAmp  = { |amp=0.5| ~ampBase[\slice]  = amp; ~refreshAmp.(\slice);  };
+~delaySetAmp  = { |amp=0.5| ~ampBase[\delay]  = amp; ~refreshAmp.(\delay);  };
+
+/////////////////////// MASTER MIXER (Multipliers)
+
+~syncMixer = { |factor=1.0|
+	~syncMult = factor;
+	~syncList.do({ |key| ~refreshAmp.(key) });
+	("Sync Layer Multiplier -> " + factor).postln;
 };
+
+~asyncMixer = { |factor=1.0|
+	~asyncMult = factor;
+	~asyncList.do({ |key| ~refreshAmp.(key) });
+	("Async Layer Multiplier -> " + factor).postln;
+};
+
+~masterMixer = { |factor=1.0|
+	~masterMult = factor;
+	(~syncList ++ ~asyncList).do({ |key| ~refreshAmp.(key) });
+	("MASTER Volume Multiplier -> " + factor).postln;
+};
+
 //////// RECALL
 
 ~useSlice = { |index|
