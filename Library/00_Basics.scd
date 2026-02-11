@@ -31,6 +31,31 @@ SynthDef(\rec, { arg buf = 0, busIn = 0, loop = 0, mix = 0, done = 2;
 		doneAction: done);
 }).add;
 
+// --- SYNTHDEF: HEADPHONE MONITOR ---
+// Gestisce il routing verso le uscite 3 e 4 (Cuffie)
+SynthDef(\monitor, { arg busMain=0, busMic=0, outHp=2,
+	ampMain=1, ampMic=1, masterVol=1, mix=0;
+
+	var srcMain, srcMic, left, right;
+
+	// 1. Legge il Main Mix (ciò che sente il pubblico)
+	// In.ar(0) legge quello che gli altri synth hanno scritto sul Bus 0
+	srcMain = In.ar(busMain, 1) * ampMain;
+
+	// 2. Legge il Microfono Diretto (latenza quasi zero)
+	srcMic  = SoundIn.ar(busMic) * ampMic;
+
+	// 3. Logica di Mixing (SPLIT vs MIX)
+	// Se mix = 0 (SPLIT): Sinistra = Main, Destra = Mic
+	// Se mix = 1 (MONO):  Sinistra = Main+Mic, Destra = Main+Mic
+	// I valori intermedi fondono i segnali
+
+	left  = srcMain + (srcMic * mix);
+	right = srcMic  + (srcMain * mix);
+
+	// 4. Output su Bus 2 e 3 (Hardware Output 3 e 4)
+	Out.ar(outHp, [left, right] * masterVol);
+}).add;
 
 "Libreria Basics SynthDef caricata.".postln;
 )

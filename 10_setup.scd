@@ -1,5 +1,3 @@
-ServerOptions.devices;
-
 (
 Server.default = s = Server.local;
 
@@ -10,7 +8,7 @@ Server.default = s = Server.local;
 s.options.device = "ASIO : Universal Audio Volt"; // Scheda Audio Giacomo
 
 s.options.numInputBusChannels = 1;
-s.options.numOutputBusChannels = 1;
+s.options.numOutputBusChannels = 4;
 
 s.options.sampleRate = 48000;
 s.options.blockSize  = 256;
@@ -68,22 +66,151 @@ s.waitForBoot {
     ~featGrp = Group.after(~micGrp);
     ~recGrp  = Group.after(~featGrp);
     ~fxGrp   = Group.after(~recGrp);
+	~monGrp  = Group.after(~fxGrp);
 
     s.sync;
 
     // --- 4. FUNZIONI UTILI ---
 	~cleanAll = {
-        ~fxGrp.freeAll;   // Ferma tutti i synth degli effetti
-        ~recGrp.freeAll;  // Ferma i registratori e i ksig
-        ~featGrp.freeAll; // Ferma le analisi spettrali
+		~monGrp.freeAll;
+        ~fxGrp.freeAll;
+        ~recGrp.freeAll;
+        ~featGrp.freeAll;
 
-        // OPZIONALE: Libera la memoria dei buffer registrati per resettare la cronologia
+        // OPZIONALE: Reset pool
         // ~slicePool.do(_.free); ~slicePool = List.new;
 
-        "Sistema resettato. Gruppi liberati. Cronologia buffer mantenuta.".postln; [cite: 161]
+        "Sistema resettato. Gruppi liberati. Cronologia buffer mantenuta.".postln;
     };
 
-    s.meter; s.plotTree;
-    "SISTEMA PRONTO: Bus e Gruppi configurati.".postln;
+    // --- 5. DASHBOARD "MONOLITICA" (Layout Affiancato) ---
+    ~startDashboard = {
+        // --- 1. PARAMETRI DI POSIZIONAMENTO (MODIFICA QUI) ---
+        var screenW = Window.screenBounds.width;  // larghezza totale del monitor.
+        var screenH = Window.screenBounds.height; // altezza totale del monitor
+
+        // DIMENSIONI
+        var meterW = 120;
+        var treeW  = 400;
+		var timerW = 200;
+		var marginW = 5;
+        var toolsH = 500;
+		var nameBarH = 50;
+		var meterH = toolsH - meterW - nameBarH;
+
+        // CALCOLO COORDINATE
+		var timerX = screenW - timerW - marginW;
+		var treeX = timerX - treeW - marginW;
+		var meterX = treeX - meterW - marginW;
+		var startY = screenH - toolsH - nameBarH;
+		var mStartY = startY + toolsH - meterH;
+
+		// POSIZIONAMENTO
+        var timerRect = Rect(
+			timerX,    // X start
+			startY,    // Y start (sopra gli strumenti)
+            timerW,    // Larghezza totale
+            toolsH     // Altezza
+        );
+
+        var treeRect = Rect(
+            treeX,    // X start (più a destra)
+            startY,    // Y start (basso)
+            treeW,     // Larghezza
+            toolsH     // Altezza
+        );
+
+        var meterRect = Rect(
+            meterX,     // X start (più a sinistra)
+            mStartY,    // Y start (basso)
+            meterW,    // Larghezza
+            meterH     // Altezza
+        );
+
+        // --- 2. PULIZIA E AVVIO ---
+        Window.closeAll;
+
+		// A. LANCIO TOOL ESTERNI
+        s.meter;
+        s.plotTree;
+
+        // B. TIMER
+        ~dashboard = Window("Timer", timerRect, border: true)
+            .front
+            .alwaysOnTop_(true)
+            .background_(Color.new255(220, 220, 220))
+            .userCanClose_(false);
+
+        ~timerText = StaticText(~dashboard, Rect(0, 0, timerW, toolsH))
+            .string_("0")
+            .font_(Font("Monaco", 60, true))
+            .align_(\center)
+            .stringColor_(Color.black);
+
+        // C. IL GUARDIANO (Ora controlla 3 finestre)
+        ~windowKeeper = Routine({
+            inf.do {
+                // Cerca le finestre per nome
+				var meterWin = Window.allWindows.detect({ |w| w.name.contains("localhost levels (dBFS)") });
+                var treeWin  = Window.allWindows.detect({ |w| w.name == "localhost Node Tree" });
+
+                // 1. CONTROLLO METER
+                if(meterWin.notNil) {
+                    if(meterWin.bounds != meterRect) {
+                        meterWin.bounds = meterRect;
+                        meterWin.alwaysOnTop_(true);
+                    };
+                };
+
+                // 2. CONTROLLO TREE
+                if(treeWin.notNil) {
+                    if(treeWin.bounds != treeRect) {
+                        treeWin.bounds = treeRect;
+                        treeWin.alwaysOnTop_(true);
+                    };
+                };
+
+                // 3. CONTROLLO TIMER (Lo forziamo pure lui per sicurezza)
+                if(~dashboard.bounds != timerRect) {
+                   ~dashboard.bounds = timerRect;
+                   ~dashboard.alwaysOnTop_(true);
+                };
+
+                1.wait; // Controlla ogni secondo
+            };
+        }).play(AppClock);
+
+        ~dashboard.onClose_({ ~windowKeeper.stop; });
+        "DASHBOARD LAYOUT: Meter e Tree affiancati.".postln;
+    };
+
+    // --- FUNZIONI TIMER ---
+    ~startTimer = { |alertEvery = nil|
+        if(~timerRoutine.notNil) { ~timerRoutine.stop };
+        ~timerRoutine = Routine({
+            var seconds = 0;
+			~timerText.stringColor_(Color.black);
+            inf.do {
+                { ~timerText.string_(seconds.asString) }.defer;
+                {
+                    if(alertEvery.notNil and: { seconds > 0 } and: { seconds % alertEvery == 0 }) {
+						~dashboard.background_(Color.new255(255, 255, 0));
+                    } {
+						~dashboard.background_(Color.new255(220, 220, 220));
+                    };
+                }.defer;
+                1.wait;
+                seconds = seconds + 1;
+            };
+        }).play(TempoClock.default);
+    };
+
+    ~stopTimer = {
+        if(~timerRoutine.notNil) { ~timerRoutine.stop; ~timerRoutine = nil; };
+        { ~timerText.stringColor_(Color.red) }.defer;
+    };
+
+    AppClock.sched(1.0, { ~startDashboard.(); nil });
+	"SISTEMA PRONTO: Bus e Gruppi configurati.".postln;
 };
 )
