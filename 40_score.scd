@@ -12,20 +12,20 @@
 (
 ~sliceChaosToPulses.(bufIndex: 0, totalDur: 90, amp: 3.5, stepTime: 22);
 ~harmOn.();
-~harmCtrl.(\trig, type: 5, freq: 50);
 ~harmSetAmp.(0.7);
+~harmCtrl.(\trig, type: 5, freq: 50);
 ~harmCtrl.(\trsp, type: -1, val: 0);
 ~harmCtrl.(\gdur, type: -1, val: 0.5);
 )
 (
-~harmCtrl.(\trig, type: 5, freq: 80);
 ~harmSetAmp.(2.2);
+~harmCtrl.(\trig, type: 5, freq: 80);
 ~harmCtrl.(\trsp, type: -1, val: -2);
 ~harmCtrl.(\gdur, type: -1, val: 1.3);
 )
 (
-~harmCtrl.(\trig, type: 5, freq: 150);
 ~harmSetAmp.(2.6);
+~harmCtrl.(\trig, type: 5, freq: 150);
 ~harmCtrl.(\trsp, type: -1, val: -4);
 ~harmCtrl.(\gdur, type: -1, val: 2.5);
 )
@@ -180,8 +180,8 @@
 ~recStop.();
 // Glissando cello
 ~codaProgression.(bufIndex: 3, totalDur: 30, ampS: 8, ampG: 1.5, stepTime: nil);
-~grainSetAmp.(1.5);
 ~sliceSetAmp.(8);
+~grainSetAmp.(1.5);
 (
 ~stopTimer.();
 ~sliceOff.();
