@@ -189,7 +189,7 @@ s.waitForBoot {
         if(~timerRoutine.notNil) { ~timerRoutine.stop };
         ~timerRoutine = Routine({
             var seconds = 0;
-			~timerText.stringColor_(Color.black);
+			{ ~timerText.stringColor_(Color.black); }.defer;
             inf.do {
                 { ~timerText.string_(seconds.asString) }.defer;
                 {

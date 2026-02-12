@@ -1,8 +1,42 @@
-~hpVol.(0.35); // volume generale delle cuffie
-~hpMix.(0.5, 1.7); // Elettronica, Cello
-
-~hpMode.(0); // Modalità SPLIT
+(
+~hpVol.(1); // volume generale delle cuffie
+~hpMix.(0.2, 7); // Elettronica, Cello
 ~hpMode.(1); // Modalità MONO
+~asyncMixer.(1.5);
+)
+// Test volumi
+// Rec per test
+~recStart.();
+~recStop.();
+// 1
+(
+~sliceTrspProgression.(bufIndex: 0, totalDur: 45, amp: 1, stepTime: 2);
+~delayOn.(\fbk);
+~delaySetAmp.(10);
+~delayCtrl.(\del, type: -1, val: 1);
+~delayCtrl.(\decayT, type: -1, val: 0);
+~delayCtrl.(\mix, type: -1, val: 0);
+)
+// 2
+(
+~delayOff.();
+~harmOn.();
+~harmSetAmp.(3);
+~harmCtrl.(\trsp, type: 2, freq: 100, range: [-8, 8]);
+~harmCtrl.(\gdur, type: -1, val: 8);
+)
+// 3
+(
+~harmOff.();
+~ringOn.();
+~ringSetAmp.(6);
+~ringCtrl.(\fmod, type: -1, val: 20);
+~ringCtrl.(\idx, type: -1, val: 1.5);
+)
+(
+~sliceOff.();
+~ringOff.();
+)
 
 // PRIMA SEZIONE
 // Rec 1 (tre note ribattute cello)
@@ -10,7 +44,7 @@
 ~recStop.();
 // Un cambio ogni 22 secondi, l'ultimo guarda filo (grave)
 (
-~sliceChaosToPulses.(bufIndex: 0, totalDur: 90, amp: 3.5, stepTime: 22);
+~sliceChaosToPulses.(bufIndex: 1, totalDur: 90, amp: 3.5, stepTime: 22);
 ~harmOn.();
 ~harmSetAmp.(0.7);
 ~harmCtrl.(\trig, type: 5, freq: 50);
@@ -35,7 +69,7 @@
 ~harmCtrl.(\gdur, type: -1, val: 4);
 )
 // Deve emergere la pulsazione asincrona
-~asyncMixer.(1);
+~asyncMixer.(1.5);
 (
 ~harmCtrl.(\trsp, type: 2, freq: 100, range: [-8, 8]);
 ~harmCtrl.(\gdur, type: -1, val: 8);
@@ -46,7 +80,7 @@
 ~stopTimer.();
 ~masterMixer.(1);
 ~syncMixer.(1);
-~asyncMixer.(1);
+~asyncMixer.(1.5);
 )
 
 // SECONDA SEZIONE
@@ -54,7 +88,7 @@
 // Rec 2 (ostinato 6 crome)
 ~recStart.();
 ~recStop.();
-~grainProgression.(bufIndex: 1, totalDur: 30, amp: 8, stepTime: nil);
+~grainProgression.(bufIndex: 2, totalDur: 30, amp: 8, stepTime: nil);
 
 // Rec 3 (tema secondo movimento)
 ~recStart.();
@@ -65,7 +99,7 @@
 (
 ~stopTimer.();
 ~grainOff.();
-~sliceTrspProgression.(bufIndex: 2, totalDur: 45, amp: 1, stepTime: 2);
+~sliceTrspProgression.(bufIndex: 3, totalDur: 45, amp: 1, stepTime: 2);
 ~delayOn.(\fbk);
 ~delaySetAmp.(10);
 ~delayCtrl.(\del, type: -1, val: 1);
@@ -94,7 +128,7 @@
 ~delayOff.();
 ~masterMixer.(1);
 ~syncMixer.(1);
-~asyncMixer.(1);
+~asyncMixer.(1.5);
 )
 (
 ~delayOn.(\echo);
@@ -126,13 +160,13 @@
 ~delayOff.();
 ~masterMixer.(1);
 ~syncMixer.(1);
-~asyncMixer.(1);
+~asyncMixer.(1.5);
 )
 
 // TERZA SEZIONE
 // Imposta buffer su rec1
 (
-~useSlice.(0);
+~useSlice.(1);
 ~grainOn.();
 ~grainSetAmp.(1);
 ~grainCtrl.(\trsp, type: 2, freq: 70, range: [0, 48]);
@@ -172,14 +206,17 @@
 ~ringOff.();
 ~masterMixer.(1);
 ~syncMixer.(1);
-~asyncMixer.(1);
+~asyncMixer.(1.5);
 )
 // CODA
 // Rec 4 (arpeggi di armonici)
 ~recStart.();
 ~recStop.();
 // Glissando cello
-~codaProgression.(bufIndex: 3, totalDur: 30, ampS: 8, ampG: 1.5, stepTime: nil);
+(
+~syncMixer.(1.5);
+~codaProgression.(bufIndex: 4, totalDur: 30, ampS: 8, ampG: 1.5, stepTime: nil);
+)
 ~sliceSetAmp.(8);
 ~grainSetAmp.(1.5);
 (
