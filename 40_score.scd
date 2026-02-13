@@ -2,7 +2,7 @@
 ~hpVol.(1); // volume generale delle cuffie
 ~hpMix.(0.2, 7); // Elettronica, Cello
 ~hpMode.(1); // Modalità MONO
-~asyncMixer.(1.5);
+~asyncMixer.(1.7);
 )
 ~startTimer.(5);
 ~stopTimer.();
@@ -12,7 +12,7 @@
 ~recStop.();
 // 1
 (
-~sliceTrspProgression.(bufIndex: 0, totalDur: 45, amp: 1, stepTime: 2);
+~sliceTrspProgression.(bufIndex: 1, totalDur: 45, amp: 1, stepTime: 2);
 ~delayOn.(\fbk);
 ~delaySetAmp.(10);
 ~delayCtrl.(\del, type: -1, val: 1);
