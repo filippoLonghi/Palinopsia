@@ -114,6 +114,32 @@
     "PIECE MODE READY: Tutti i bus di controllo inizializzati. Monitoring cuffie attivo su Out 3/4.".postln;
 };
 
+/////////////////////// FUNZIONI TIMER ---
+    ~startTimer = { |alertEvery = nil|
+        if(~timerRoutine.notNil) { ~timerRoutine.stop };
+        ~timerRoutine = Routine({
+            var seconds = 0;
+			{ ~timerText.stringColor_(Color.black); }.defer;
+            inf.do {
+                { ~timerText.string_(seconds.asString) }.defer;
+                {
+                    if(alertEvery.notNil and: { seconds > 0 } and: { seconds % alertEvery == 0 }) {
+						~dashboard.background_(Color.new255(255, 255, 0));
+                    } {
+						~dashboard.background_(Color.new255(220, 220, 220));
+                    };
+                }.defer;
+                1.wait;
+                seconds = seconds + 1;
+            };
+        }).play(TempoClock.default);
+    };
+
+    ~stopTimer = {
+        if(~timerRoutine.notNil) { ~timerRoutine.stop; ~timerRoutine = nil; };
+        { ~timerText.stringColor_(Color.red) }.defer;
+    };
+
 /////////////////////// FX LOGICs
 
 /////////////////////// SYNC FX: FSHIFT

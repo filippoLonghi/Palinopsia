@@ -4,6 +4,8 @@
 ~hpMode.(1); // Modalità MONO
 ~asyncMixer.(1.5);
 )
+~startTimer.(5);
+~stopTimer.();
 // Test volumi
 // Rec per test
 ~recStart.();
@@ -22,6 +24,7 @@
 ~delayOff.();
 ~harmOn.();
 ~harmSetAmp.(3);
+~harmCtrl.(\trig, type: 5, freq: 150);
 ~harmCtrl.(\trsp, type: 2, freq: 100, range: [-8, 8]);
 ~harmCtrl.(\gdur, type: -1, val: 8);
 )
@@ -69,7 +72,7 @@
 ~harmCtrl.(\gdur, type: -1, val: 4);
 )
 // Deve emergere la pulsazione asincrona
-~asyncMixer.(1.5);
+~asyncMixer.(1.7);
 (
 ~harmCtrl.(\trsp, type: 2, freq: 100, range: [-8, 8]);
 ~harmCtrl.(\gdur, type: -1, val: 8);
@@ -89,7 +92,7 @@
 ~recStart.();
 ~recStop.();
 ~grainProgression.(bufIndex: 2, totalDur: 30, amp: 8, stepTime: nil);
-
+// Dire a filo quando finisce progressione
 // Rec 3 (tema secondo movimento)
 ~recStart.();
 ~recStop.();
@@ -136,11 +139,12 @@
 ~delayCtrl.(\del, type: -1, val: 0.3);
 ~delayCtrl.(\mix, type: -1, val: 0);
 )
+// Bordellone
 ~delayCtrl.(\del, type: -1, val: 0.5);
 ~delayCtrl.(\del, type: -1, val: 0.7);
 ~delayCtrl.(\del, type: -1, val: 0.9);
 ~delayCtrl.(\del, type: -1, val: 1);
-
+// Guardare filo
 ~delayCtrl.(\del, type: 2, freq: 1, range: [-1, 1]);
 ~delayCtrl.(\del, type: 2, freq: 2, range: [-1, 1]);
 ~delayCtrl.(\del, type: 2, freq: 4, range: [-1, 1]);
@@ -209,7 +213,7 @@
 ~asyncMixer.(1.5);
 )
 // CODA
-// Rec 4 (arpeggi di armonici)
+// Rec 4 (arpeggi di armonici dal terzo)
 ~recStart.();
 ~recStop.();
 // Glissando cello
@@ -219,6 +223,7 @@
 )
 ~sliceSetAmp.(8);
 ~grainSetAmp.(1.5);
+// Guarda filo per
 (
 ~stopTimer.();
 ~sliceOff.();
